@@ -89,8 +89,8 @@ class LunarLanderMultiFire(gym.Env):
 
         # useful range is -1 .. +1
         high = np.array([np.inf]*8)
-        # nop, fire left engine, main engine, right engine
-        self.action_space = spaces.Discrete(4)
+        # nop, fire left engine, main engine, right engine, left & main engine, right & main engine, all engines
+        self.action_space = spaces.Discrete(7)
         self.observation_space = spaces.Box(-high, high)
 
         self._reset()
@@ -233,7 +233,8 @@ class LunarLanderMultiFire(gym.Env):
         tip  = (math.sin(self.lander.angle), math.cos(self.lander.angle))
         side = (-tip[1], tip[0]);
         dispersion = [self.np_random.uniform(-1.0, +1.0) / SCALE for _ in range(2)]
-        if action==2: # Main engine
+
+        if action==2 or action==6 or action==4 or action==5: # Main engine OR combination of any or all orientation engines (if both orientation engines are firing, they cancel out)
             ox =  tip[0]*(4/SCALE + 2*dispersion[0]) + side[0]*dispersion[1]   # 4 is move a bit downwards, +-2 for randomness
             oy = -tip[1]*(4/SCALE + 2*dispersion[0]) - side[1]*dispersion[1]
             impulse_pos = (self.lander.position[0] + ox, self.lander.position[1] + oy)
@@ -241,7 +242,9 @@ class LunarLanderMultiFire(gym.Env):
             p.ApplyLinearImpulse(           ( ox*MAIN_ENGINE_POWER,  oy*MAIN_ENGINE_POWER), impulse_pos, True)
             self.lander.ApplyLinearImpulse( (-ox*MAIN_ENGINE_POWER, -oy*MAIN_ENGINE_POWER), impulse_pos, True)
 
-        if action==1 or action==3: # Orientation engines
+        if action==1 or action==3 or action==4 or action==5: # Orientation engines OR combination of either, but not both, orientation engines
+            if action==4: action=1 # if main and right orientation engine, pretend just orientation (main engine taken care of above)
+            elif action==5: action=3 # if main and left orientation engine, pretend just orientation (main engine taken care of above)
             direction = action-2
             ox =  tip[0]*dispersion[0] + side[0]*(3*dispersion[1]+direction*SIDE_ENGINE_AWAY/SCALE)
             oy = -tip[1]*dispersion[0] - side[1]*(3*dispersion[1]+direction*SIDE_ENGINE_AWAY/SCALE)
@@ -276,7 +279,7 @@ class LunarLanderMultiFire(gym.Env):
             reward = shaping - self.prev_shaping
         self.prev_shaping = shaping
 
-        if action==2:       # main engine
+        if action==2 or action==4 or action==5 or action==6:       # main engine
             reward -= 0.30  # less fuel spent is better, about -30 for heurisic landing
         elif action != 0:
             reward -= 0.03
