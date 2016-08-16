@@ -13,6 +13,8 @@ from gym.utils import colorize, seeding
 import pyglet
 from pyglet.gl import *
 
+import rospy
+
 # Easiest continuous control task to learn from pixels, a top-down racing environment.
 # Discreet control is reasonable in this environment as well, on/off discretisation is
 # fine.
@@ -106,6 +108,18 @@ class CarRacingAugmented(gym.Env):
     }
 
     def __init__(self):
+
+        # load ROS params
+        global WINDOW_W
+        global WINDOW_H
+        global VIDEO_W
+        global VIDEO_H
+
+        WINDOW_W = rospy.get_param('/car_racing/window_w', 1200)
+        WINDOW_H = rospy.get_param('/car_racing/window_h', 1000)
+        VIDEO_W = rospy.get_param('/car_racing/video_w', 600)
+        VIDEO_H = rospy.get_param('/car_racing/video_h', 400)
+
         self._seed()
         self.contactListener_keepref = FrictionDetector(self)
         self.world = Box2D.b2World((0,0), contactListener=self.contactListener_keepref)
@@ -149,7 +163,7 @@ class CarRacingAugmented(gym.Env):
             checkpoints.append( (alpha, rad*math.cos(alpha), rad*math.sin(alpha)) )
 
         #print "\n".join(str(h) for h in checkpoints)
-        #self.road_poly = [ (    # uncomment this to see checkpoints
+        # self.road_poly = [ (    # uncomment this to see checkpoints
         #    [ (tx,ty) for a,tx,ty in checkpoints ],
         #    (0.7,0.7,0.9) ) ]
         self.road = []
@@ -472,9 +486,9 @@ if __name__=="__main__":
         if k==key.DOWN:  a[2] = 0
     env = CarRacingAugmented()
     env.render()
-    record_video = False
-    if record_video:
-        env.monitor.start('/tmp/video-test', force=True)
+    # record_video = False
+    # if record_video:
+    #     env.monitor.start('/tmp/video-test', force=True)
     env.viewer.window.on_key_press = key_press
     env.viewer.window.on_key_release = key_release
     while True:
@@ -495,4 +509,4 @@ if __name__=="__main__":
             if not record_video: # Faster, but you can as well call env.render() every time to play full window.
                 env.render()
             if done or restart: break
-    env.monitor.close()
+    # env.monitor.close()

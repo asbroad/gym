@@ -8,6 +8,8 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
+import rospy
+
 # Rocket trajectory optimization is a classic topic in Optimal Control.
 #
 # According to Pontryagin's maximum principle it's optimal to fire engine full throttle or
@@ -79,6 +81,23 @@ class LunarLander(gym.Env):
     continuous = False
 
     def __init__(self):
+
+        # load ROS params
+        global MAIN_ENGINE_POWER
+        global SIDE_ENGINE_POWER
+        global INITIAL_RANDOM
+        global VIEWPORT_W
+        global VIEWPORT_H
+
+        MAIN_ENGINE_POWER = rospy.get_param('/lunar_lander/main_engine_power', 13.0)
+        SIDE_ENGINE_POWER = rospy.get_param('/lunar_lander/side_engine_power', 0.6)
+        INITIAL_RANDOM = rospy.get_param('/lunar_lander/initial_random', 1000)
+        VIEWPORT_W = rospy.get_param('/lunar_lander/viewport_w', 600)
+        VIEWPORT_H = rospy.get_param('/lunar_lander/viewport_h', 400)
+        self.INITIAL_POS_X = rospy.get_param('/lunar_lander/initial_pos_x', VIEWPORT_W/SCALE/2)
+        self.INITIAL_POS_Y = rospy.get_param('/lunar_lander/initial_pos_y', VIEWPORT_H/SCALE)
+        self.INITIAL_POS_ANG = rospy.get_param('/lunar_lander/initial_pos_ang', 0.0)
+
         self._seed()
         self.viewer = None
 
@@ -156,10 +175,12 @@ class LunarLander(gym.Env):
         self.moon.color1 = (0.0,0.0,0.0)
         self.moon.color2 = (0.0,0.0,0.0)
 
-        initial_y = VIEWPORT_H/SCALE
+        # initial_y = VIEWPORT_H/SCALE
         self.lander = self.world.CreateDynamicBody(
-            position = (VIEWPORT_W/SCALE/2, initial_y),
-            angle=0.0,
+            # position = (VIEWPORT_W/SCALE/2, initial_y),
+            # angle=0.0,
+            position = (self.INITIAL_POS_X, self.INITIAL_POS_Y),
+            angle=self.INITIAL_POS_ANG,
             fixtures = fixtureDef(
                 shape=polygonShape(vertices=[ (x/SCALE,y/SCALE) for x,y in LANDER_POLY ]),
                 density=5.0,
@@ -178,7 +199,7 @@ class LunarLander(gym.Env):
         self.legs = []
         for i in [-1,+1]:
             leg = self.world.CreateDynamicBody(
-                position = (VIEWPORT_W/SCALE/2 - i*LEG_AWAY/SCALE, initial_y),
+                position = (self.INITIAL_POS_X - i*LEG_AWAY/SCALE, self.INITIAL_POS_Y),
                 angle = (i*0.05),
                 fixtures = fixtureDef(
                     shape=polygonShape(box=(LEG_W/SCALE, LEG_H/SCALE)),
