@@ -3,10 +3,9 @@ import sys, os.path
 
 # Don't import gym module here, since deps may not be installed
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'gym'))
-from version import VERSION
 
 setup(name='gym',
-      version=VERSION,
+      version='0.0.1',
       description='The OpenAI Gym: A toolkit for developing and comparing your reinforcement learning agents.',
       url='https://github.com/openai/gym',
       author='OpenAI',
