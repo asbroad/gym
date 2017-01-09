@@ -1,4 +1,4 @@
-import sys, math
+import math
 import numpy as np
 
 import Box2D
@@ -8,6 +8,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
+import random
 import rospy
 
 # Rocket trajectory optimization is a classic topic in Optimal Control.
@@ -95,6 +96,24 @@ class LunarLanderMultiFire(gym.Env):
         self.INITIAL_POS_X = rospy.get_param('/lunar_lander/initial_pos_x', VIEWPORT_W/SCALE/2)
         self.INITIAL_POS_Y = rospy.get_param('/lunar_lander/initial_pos_y', VIEWPORT_H/SCALE)
         self.INITIAL_POS_ANG = rospy.get_param('/lunar_lander/initial_pos_ang', 0.0)
+        self.INITIAL_GOAL_X = rospy.get_param('/lunar_lander/initial_goal_x', 10.0)
+        self.INITIAL_GOAL_Y = rospy.get_param('/lunar_lander/initial_goal_y', 10.0)
+
+        self.draw_helipad = rospy.get_param('/lunar_lander/draw_helipad', False)
+        self.draw_goal = rospy.get_param('/lunar_lander/draw_goal', True)
+
+        self.INITIAL_POS_X += random.uniform(-0.2, 0.2)
+        self.INITIAL_POS_Y += random.uniform(-0.2, 0.2)
+        self.INITIAL_POS_ANG += random.uniform(-0.05, 0.05)
+
+        self.goal_x = self.INITIAL_GOAL_X #+ random.uniform(-0.5, 0.5)
+        self.goal_y = self.INITIAL_GOAL_Y #+ random.uniform(-0.5, 0.5)
+
+        print 'initial conditions'
+        print '------------------'
+        print self.INITIAL_POS_X, self.INITIAL_POS_Y, self.INITIAL_POS_ANG
+        print self.goal_x, self.goal_y
+        print '------------------'
 
         self._seed()
         self.viewer = None
@@ -169,8 +188,6 @@ class LunarLanderMultiFire(gym.Env):
 
         # initial_y = VIEWPORT_H/SCALE
         self.lander = self.world.CreateDynamicBody(
-            # position = (VIEWPORT_W/SCALE/2, initial_y),
-            # angle=0.0,
             position = (self.INITIAL_POS_X, self.INITIAL_POS_Y),
             angle=self.INITIAL_POS_ANG,
             fixtures = fixtureDef(
@@ -325,6 +342,7 @@ class LunarLanderMultiFire(gym.Env):
         if self.viewer is None:
             self.viewer = rendering.Viewer(VIEWPORT_W, VIEWPORT_H)
             self.viewer.set_bounds(0, VIEWPORT_W/SCALE, 0, VIEWPORT_H/SCALE)
+            self.viewer.window.set_location(650, 300)
 
         for obj in self.particles:
             obj.ttl -= 0.15
@@ -335,6 +353,11 @@ class LunarLanderMultiFire(gym.Env):
 
         for p in self.sky_polys:
             self.viewer.draw_polygon(p, color=(0,0,0))
+
+        # add in goal location
+        if self.draw_goal:
+	        t = rendering.Transform(translation=(self.goal_x,self.goal_y))
+	        self.viewer.draw_circle(1, 100, True, color=(0.53, 1.0, 0.42)).add_attr(t)
 
         for obj in self.particles + self.drawlist:
             for f in obj.fixtures:
@@ -349,11 +372,12 @@ class LunarLanderMultiFire(gym.Env):
                     path.append(path[0])
                     self.viewer.draw_polyline(path, color=obj.color2, linewidth=2)
 
-        for x in [self.helipad_x1, self.helipad_x2]:
-            flagy1 = self.helipad_y
-            flagy2 = flagy1 + 50/SCALE
-            self.viewer.draw_polyline( [(x, flagy1), (x, flagy2)], color=(1,1,1) )
-            self.viewer.draw_polygon( [(x, flagy2), (x, flagy2-10/SCALE), (x+25/SCALE, flagy2-5/SCALE)], color=(0.8,0.8,0) )
+        if self.draw_helipad:
+	        for x in [self.helipad_x1, self.helipad_x2]:
+	            flagy1 = self.helipad_y
+	            flagy2 = flagy1 + 50/SCALE
+	            self.viewer.draw_polyline( [(x, flagy1), (x, flagy2)], color=(1,1,1) )
+	            self.viewer.draw_polygon( [(x, flagy2), (x, flagy2-10/SCALE), (x+25/SCALE, flagy2-5/SCALE)], color=(0.8,0.8,0) )
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
@@ -364,6 +388,7 @@ if __name__=="__main__":
     steps = 0
     total_reward = 0
     a = 0
+    # st = time.time()
     while True:
         s, r, done, info = env.step(a)
         total_reward += r
@@ -396,3 +421,5 @@ if __name__=="__main__":
 
         env.render()
         if done: break
+    # et = time.time()
+    # print 'time : ' + str(et - st)
