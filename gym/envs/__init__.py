@@ -108,6 +108,14 @@ register(
 )
 
 register(
+    id='LunarLanderMultiFire-v0',
+    entry_point='gym.envs.box2d:LunarLanderMultiFire',
+    timestep_limit=1000,
+    reward_threshold=200,
+)
+
+
+register(
     id='BipedalWalker-v2',
     entry_point='gym.envs.box2d:BipedalWalker',
     tags={'wrapper_config.TimeLimit.max_episode_steps': 1600},
