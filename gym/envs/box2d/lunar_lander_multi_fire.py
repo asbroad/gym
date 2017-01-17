@@ -31,7 +31,7 @@ import random
 #
 # To play yourself, run:
 #
-# python examples/agents/keyboard_agent.py LunarLander-v0
+# python examples/agents/keyboard_agent.py LunarLanderMultiFire-v0
 #
 # Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
 
@@ -196,8 +196,6 @@ class LunarLanderMultiFire(gym.Env):
 
         # initial_y = VIEWPORT_H/SCALE
         self.lander = self.world.CreateDynamicBody(
-            # position = (VIEWPORT_W/SCALE/2, initial_y),
-            # angle=0.0,
             position = (self.INITIAL_POS_X, self.INITIAL_POS_Y),
             angle=self.INITIAL_POS_ANG,
             fixtures = fixtureDef(
@@ -363,6 +361,7 @@ class LunarLanderMultiFire(gym.Env):
         if self.viewer is None:
             self.viewer = rendering.Viewer(VIEWPORT_W, VIEWPORT_H)
             self.viewer.set_bounds(0, VIEWPORT_W/SCALE, 0, VIEWPORT_H/SCALE)
+            self.viewer.window.set_location(650, 300)
 
         for obj in self.particles:
             obj.ttl -= 0.15
@@ -436,18 +435,44 @@ def heuristic(env, s):
     return a
 
 if __name__=="__main__":
-    #env = LunarLander()
-    env = LunarLanderContinuous()
-    s = env.reset()
-    total_reward = 0
+    # Heuristic for testing.
+    env = LunarLanderMultiFire()
+    env.reset()
     steps = 0
+    total_reward = 0
+    a = 0
+    # st = time.time()
     while True:
-        a = heuristic(env, s)
         s, r, done, info = env.step(a)
-        env.render()
         total_reward += r
         if steps % 20 == 0 or done:
             print(["{:+0.2f}".format(x) for x in s])
             print("step {} total_reward {:+0.2f}".format(steps, total_reward))
         steps += 1
         if done: break
+        angle_targ = s[0]*0.5 + s[2]*1.0         # angle should point towards center (s[0] is horizontal coordinate, s[2] hor speed)
+        if angle_targ >  0.4: angle_targ =  0.4  # more than 0.4 radians (22 degrees) is bad
+        if angle_targ < -0.4: angle_targ = -0.4
+        hover_targ = 0.55*np.abs(s[0])           # target y should be proporional to horizontal offset
+
+        # PID controller: s[4] angle, s[5] angularSpeed
+        angle_todo = (angle_targ - s[4])*0.5 - (s[5])*1.0
+        #print("angle_targ=%0.2f, angle_todo=%0.2f" % (angle_targ, angle_todo))
+
+        # PID controller: s[1] vertical coordinate s[3] vertical speed
+        hover_todo = (hover_targ - s[1])*0.5 - (s[3])*0.5
+        #print("hover_targ=%0.2f, hover_todo=%0.2f" % (hover_targ, hover_todo))
+
+        if s[6] or s[7]: # legs have contact
+            angle_todo = 0
+            hover_todo = -(s[3])*0.5  # override to reduce fall speed, that's all we need after contact
+
+        a = 0
+        if hover_todo > np.abs(angle_todo) and hover_todo > 0.05: a = 2
+        elif angle_todo < -0.05: a = 3
+        elif angle_todo > +0.05: a = 1
+
+        env.render()
+        if done: break
+    # et = time.time()
+    # print 'time : ' + str(et - st)

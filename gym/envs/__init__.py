@@ -114,7 +114,6 @@ register(
     reward_threshold=200,
 )
 
-
 register(
     id='BipedalWalker-v2',
     entry_point='gym.envs.box2d:BipedalWalker',
@@ -142,6 +141,7 @@ register(
     timestep_limit=1000,
     reward_threshold=900,
 )
+
 
 # Toy Text
 # ----------------------------------------
