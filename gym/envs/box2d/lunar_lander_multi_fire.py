@@ -111,11 +111,11 @@ class LunarLanderMultiFire(gym.Env):
         self.goal_x = self.INITIAL_GOAL_X #+ random.uniform(-0.5, 0.5)
         self.goal_y = self.INITIAL_GOAL_Y #+ random.uniform(-0.5, 0.5)
 
-        print 'initial conditions'
-        print '------------------'
-        print self.INITIAL_POS_X, self.INITIAL_POS_Y, self.INITIAL_POS_ANG
-        print self.goal_x, self.goal_y
-        print '------------------'
+        # print 'initial conditions'
+        # print '------------------'
+        # print self.INITIAL_POS_X, self.INITIAL_POS_Y, self.INITIAL_POS_ANG
+        # print self.goal_x, self.goal_y
+        # print '------------------'
 
         self._seed()
         self.viewer = None
